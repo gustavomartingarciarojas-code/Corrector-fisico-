@@ -1,6 +1,7 @@
 package ar.trainingwraps.imagenes
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
@@ -40,6 +41,7 @@ class GaleriaActivity : Activity() {
     private lateinit var titulo: TextView
     private lateinit var barraAbajo: LinearLayout
     private lateinit var botonAccion: Button
+    private lateinit var botonBorrar: Button
     private lateinit var adaptador: Adaptador
 
     private val archivos = ArrayList<File>()
@@ -125,7 +127,13 @@ class GaleriaActivity : Activity() {
             setTypeface(typeface, Typeface.BOLD)
             setOnClickListener { accionSeleccion() }
         }
+        botonBorrar = Button(this).apply {
+            setTextColor(Color.rgb(255, 110, 110))
+            setOnClickListener { confirmarBorrar() }
+            visibility = if (modoElegir) View.GONE else View.VISIBLE
+        }
         barraAbajo.addView(cancelar, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        barraAbajo.addView(botonBorrar, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         barraAbajo.addView(botonAccion, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         raiz.addView(barraAbajo)
 
@@ -149,6 +157,8 @@ class GaleriaActivity : Activity() {
             return
         }
         VigiaService.arrancar(this)
+        // Lo que lleva más de 30 días en la papelera se borra solo.
+        Thread { try { Ordenador.vaciarPapelera(false) } catch (e: Exception) { } }.start()
         cargar()
     }
 
@@ -185,8 +195,26 @@ class GaleriaActivity : Activity() {
             } else {
                 "Compartir (${seleccion.size})"
             }
+            botonBorrar.text = "Borrar (${seleccion.size})"
         }
         adaptador.notifyDataSetChanged()
+    }
+
+    private fun confirmarBorrar() {
+        val elegidas = archivos.filter { it.absolutePath in seleccion }
+        if (elegidas.isEmpty()) return
+        val cuantas = if (elegidas.size == 1) "esta imagen" else "estas ${elegidas.size} imágenes"
+        AlertDialog.Builder(this)
+            .setTitle("Borrar")
+            .setMessage("¿Borrar $cuantas? Van a la papelera: durante 30 días las podés recuperar desde Ajustes.")
+            .setPositiveButton("Sí, borrar") { _, _ ->
+                val n = Ordenador.borrar(applicationContext, elegidas)
+                seleccion.clear()
+                cargar()
+                Toast.makeText(this, if (n == 1) "1 imagen borrada" else "$n imágenes borradas", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun tocar(pos: Int) {
@@ -273,6 +301,11 @@ class GaleriaActivity : Activity() {
             val f = archivos[position]
             val clave = f.absolutePath
             iv.tag = clave
+            // Clic derecho del mouse = elegir la imagen (para borrar o compartir).
+            iv.setOnContextClickListener {
+                alternar(position)
+                true
+            }
             val enCache = cache.get(clave)
             if (enCache != null) {
                 iv.setImageBitmap(enCache)

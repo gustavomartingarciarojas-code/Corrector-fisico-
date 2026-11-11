@@ -236,4 +236,64 @@ object Ordenador {
             null
         }
     }
+
+    // ---------------- Papelera ----------------
+    // Lo que se borra desde la app no desaparece de golpe: va a Imagenes/.papelera
+    // (oculta, no se ve en la galería) y se vacía sola a los 30 días.
+
+    private const val DIAS_PAPELERA = 30L
+
+    val papelera: File
+        get() = File(destino, ".papelera")
+
+    fun enPapelera(): List<File> =
+        papelera.listFiles()?.filter { it.isFile } ?: emptyList()
+
+    /** Manda las imágenes a la papelera. Devuelve cuántas se borraron. */
+    @Synchronized
+    fun borrar(ctx: Context, archivos: List<File>): Int {
+        val tacho = papelera
+        if (!tacho.exists() && !tacho.mkdirs()) return 0
+        val ahora = System.currentTimeMillis()
+        val aEscanear = ArrayList<String>()
+        var n = 0
+        for (f in archivos) {
+            if (!f.isFile) continue
+            val nuevo = moverUno(f, tacho) ?: continue
+            nuevo.setLastModified(ahora) // fecha de borrado, para vaciar a los 30 días
+            aEscanear.add(f.absolutePath)
+            n++
+        }
+        if (aEscanear.isNotEmpty()) {
+            MediaScannerConnection.scanFile(ctx.applicationContext, aEscanear.toTypedArray(), null, null)
+        }
+        return n
+    }
+
+    /** Devuelve todo lo de la papelera a Imagenes. */
+    @Synchronized
+    fun recuperarTodo(ctx: Context): Int {
+        val aEscanear = ArrayList<String>()
+        var n = 0
+        for (f in enPapelera()) {
+            val nuevo = moverUno(f, destino) ?: continue
+            aEscanear.add(nuevo.absolutePath)
+            n++
+        }
+        if (aEscanear.isNotEmpty()) {
+            MediaScannerConnection.scanFile(ctx.applicationContext, aEscanear.toTypedArray(), null, null)
+        }
+        return n
+    }
+
+    /** Borra definitivamente: todo (si [todo]) o solo lo que lleva más de 30 días. */
+    @Synchronized
+    fun vaciarPapelera(todo: Boolean): Int {
+        val limite = System.currentTimeMillis() - DIAS_PAPELERA * 24 * 3600 * 1000
+        var n = 0
+        for (f in enPapelera()) {
+            if ((todo || f.lastModified() < limite) && f.delete()) n++
+        }
+        return n
+    }
 }

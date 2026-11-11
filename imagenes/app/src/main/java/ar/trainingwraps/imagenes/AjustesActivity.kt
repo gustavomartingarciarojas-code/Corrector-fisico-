@@ -24,6 +24,7 @@ class AjustesActivity : Activity() {
     private lateinit var estado: TextView
     private lateinit var resultado: TextView
     private lateinit var botonOrdenar: Button
+    private lateinit var textoPapelera: TextView
 
     @Volatile
     private var ordenando = false
@@ -84,6 +85,27 @@ class AjustesActivity : Activity() {
             }
         })
 
+        // Papelera: lo borrado desde la galería, recuperable 30 días.
+        textoPapelera = TextView(this).apply {
+            textSize = 16f
+            setPadding(0, 40, 0, 8)
+        }
+        columna.addView(textoPapelera)
+        val filaPapelera = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        filaPapelera.addView(Button(this).apply {
+            text = "Recuperar todo"
+            setOnClickListener {
+                val n = Ordenador.recuperarTodo(applicationContext)
+                resultado.text = if (n == 1) "Recuperé 1 imagen." else "Recuperé $n imágenes."
+                actualizarEstado()
+            }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        filaPapelera.addView(Button(this).apply {
+            text = "Vaciar papelera"
+            setOnClickListener { confirmarVaciar() }
+        }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        columna.addView(filaPapelera)
+
         columna.addView(TextView(this).apply {
             textSize = 15f
             setPadding(0, 40, 0, 0)
@@ -133,6 +155,30 @@ class AjustesActivity : Activity() {
             append(if (permiso) "✔ Vigilando: lo nuevo va a Imagenes\n" else "✘ Todavía no vigila\n")
             append("Imágenes movidas hasta ahora: $total")
         }
+        val enTacho = Ordenador.enPapelera().size
+        textoPapelera.text = if (enTacho == 0) {
+            "Papelera: vacía"
+        } else {
+            "Papelera: $enTacho ${if (enTacho == 1) "imagen" else "imágenes"} (se borran solas a los 30 días)"
+        }
+    }
+
+    private fun confirmarVaciar() {
+        val enTacho = Ordenador.enPapelera().size
+        if (enTacho == 0) {
+            resultado.text = "La papelera ya está vacía."
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("Vaciar papelera")
+            .setMessage("¿Borrar para siempre $enTacho ${if (enTacho == 1) "imagen" else "imágenes"}? Esto no se puede deshacer.")
+            .setPositiveButton("Sí, vaciar") { _, _ ->
+                val n = Ordenador.vaciarPapelera(true)
+                resultado.text = "Papelera vaciada: $n borradas para siempre."
+                actualizarEstado()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun pedirPermiso() {
