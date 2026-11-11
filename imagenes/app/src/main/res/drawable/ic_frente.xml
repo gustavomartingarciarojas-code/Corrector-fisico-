@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono "C · Minimal": marco de foto con montaña y sol, y una flecha verde de "todo entra acá". -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.88"
+        android:scaleY="0.88">
+        <!-- marco -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E9FFF6"
+            android:strokeWidth="4"
+            android:pathData="M37,36 H71 A6,6 0 0 1 77,42 V68 A6,6 0 0 1 71,74 H37 A6,6 0 0 1 31,68 V42 A6,6 0 0 1 37,36 Z" />
+        <!-- sol -->
+        <path
+            android:fillColor="#E9FFF6"
+            android:pathData="M61.4,47 A3.6,3.6 0 1 0 68.6,47 A3.6,3.6 0 1 0 61.4,47 Z" />
+        <!-- montañas -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#E9FFF6"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M35,70 L47,58 L55,66 L61,61 L73,70" />
+        <!-- insignia verde -->
+        <path
+            android:fillColor="#3DDC97"
+            android:pathData="M64,34 A10,10 0 1 0 84,34 A10,10 0 1 0 64,34 Z" />
+        <!-- flecha hacia adentro -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#000000"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M74,28 L74,38 M69.5,34 L74,38.5 L78.5,34" />
+    </group>
+</vector>
