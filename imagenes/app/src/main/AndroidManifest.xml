@@ -32,6 +32,10 @@
         </activity>
 
         <activity
+            android:name=".VisorActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".AjustesActivity"
             android:label="Ajustes"
             android:exported="false" />

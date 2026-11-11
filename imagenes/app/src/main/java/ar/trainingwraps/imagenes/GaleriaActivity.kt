@@ -90,6 +90,18 @@ class GaleriaActivity : Activity() {
         }
         raiz.addView(barraArriba)
 
+        // Ayuda fija, para que siempre se sepa qué hacer.
+        raiz.addView(TextView(this).apply {
+            textSize = 13f
+            setTextColor(Color.rgb(170, 170, 170))
+            setPadding(32, 0, 16, 12)
+            text = if (modoElegir) {
+                "Tocá una imagen para adjuntarla."
+            } else {
+                "Tocá una imagen para verla, compartirla o borrarla. Para varias juntas: mantené apretada una (o clic derecho) y tocá las demás."
+            }
+        })
+
         grilla = GridView(this).apply {
             numColumns = GridView.AUTO_FIT
             columnWidth = lado
@@ -227,14 +239,9 @@ class GaleriaActivity : Activity() {
             devolver(listOf(f))
             return
         }
-        val ver = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(ArchivoProvider.uri(f), ArchivoProvider.mime(f.name))
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        try {
-            startActivity(ver)
-        } catch (e: Exception) {
-            Toast.makeText(this, "No hay una app para ver imágenes", Toast.LENGTH_SHORT).show()
-        }
+        // Se abre dentro de la app, con Compartir y Borrar a la vista.
+        listaVisor = ArrayList(archivos)
+        startActivity(Intent(this, VisorActivity::class.java).putExtra(VisorActivity.EXTRA_INDICE, pos))
     }
 
     private fun alternar(pos: Int) {
@@ -346,5 +353,8 @@ class GaleriaActivity : Activity() {
 
     companion object {
         private var yaMandoAAjustes = false
+
+        /** Lista que recibe el visor (evita pasar miles de rutas por el Intent). */
+        var listaVisor: List<File> = emptyList()
     }
 }
