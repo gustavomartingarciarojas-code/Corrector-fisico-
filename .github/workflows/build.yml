@@ -2,6 +2,9 @@ name: Compilar APK
 
 on:
   push:
+    paths-ignore:
+      - "imagenes/**"
+      - ".github/workflows/imagenes.yml"
   workflow_dispatch:
 
 permissions:
