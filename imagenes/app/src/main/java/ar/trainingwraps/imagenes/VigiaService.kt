@@ -96,7 +96,7 @@ class VigiaService : Service() {
             NotificationChannel(CANAL, "Vigilancia de imágenes", NotificationManager.IMPORTANCE_LOW)
         )
         val abrir = PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
+            this, 0, Intent(this, GaleriaActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         return Notification.Builder(this, CANAL)
             .setSmallIcon(android.R.drawable.ic_menu_gallery)

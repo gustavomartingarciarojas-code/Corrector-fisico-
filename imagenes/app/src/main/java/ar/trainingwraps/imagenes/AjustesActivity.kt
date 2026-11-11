@@ -18,8 +18,8 @@ import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
 
-/** Pantalla de configuración: estado arriba, botones y explicación abajo. */
-class MainActivity : Activity() {
+/** Pantalla de ajustes: estado arriba, botones y explicación abajo. */
+class AjustesActivity : Activity() {
 
     private lateinit var estado: TextView
     private lateinit var resultado: TextView

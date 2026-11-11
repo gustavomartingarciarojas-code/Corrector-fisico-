@@ -13,14 +13,33 @@
         android:icon="@android:drawable/ic_menu_gallery"
         android:allowBackup="false">
 
+        <!-- La "carpeta en el escritorio": ver, compartir y adjuntar imágenes. -->
         <activity
-            android:name=".MainActivity"
+            android:name=".GaleriaActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Aparece en "Abrir desde" cuando otra app pide adjuntar una imagen. -->
+            <intent-filter>
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.OPENABLE" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
         </activity>
+
+        <activity
+            android:name=".AjustesActivity"
+            android:label="Ajustes"
+            android:exported="false" />
+
+        <provider
+            android:name=".ArchivoProvider"
+            android:authorities="ar.trainingwraps.imagenes.archivos"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <service
             android:name=".VigiaService"
