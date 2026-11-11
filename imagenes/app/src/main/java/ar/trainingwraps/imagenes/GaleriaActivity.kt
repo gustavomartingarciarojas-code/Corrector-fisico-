@@ -268,7 +268,7 @@ class GaleriaActivity : Activity() {
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
             val iv = (convertView as? Cuadrado) ?: Cuadrado(this@GaleriaActivity).apply {
                 scaleType = ImageView.ScaleType.CENTER_CROP
-                setBackgroundColor(Color.LTGRAY)
+                setBackgroundColor(Color.rgb(40, 40, 40))
             }
             val f = archivos[position]
             val clave = f.absolutePath

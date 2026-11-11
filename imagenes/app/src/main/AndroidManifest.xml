@@ -11,7 +11,8 @@
     <application
         android:label="@string/app_name"
         android:icon="@android:drawable/ic_menu_gallery"
-        android:allowBackup="false">
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
 
         <!-- La "carpeta en el escritorio": ver, compartir y adjuntar imágenes. -->
         <activity
