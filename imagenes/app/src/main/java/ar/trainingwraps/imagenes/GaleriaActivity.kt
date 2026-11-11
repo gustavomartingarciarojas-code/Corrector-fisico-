@@ -14,9 +14,11 @@ import android.os.Bundle
 import android.util.LruCache
 import android.util.Size
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.widget.AdapterView
 import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.GridView
@@ -117,6 +119,19 @@ class GaleriaActivity : Activity() {
         grilla.setOnItemLongClickListener { _, _, pos, _ ->
             alternar(pos)
             true
+        }
+        // Clic derecho del mouse = elegir esa imagen. Se detecta en la grilla (no en cada
+        // miniatura) para no tapar el toque normal ni el mantener apretado.
+        grilla.setOnTouchListener { _, evento ->
+            if (evento.actionMasked == MotionEvent.ACTION_DOWN &&
+                evento.isButtonPressed(MotionEvent.BUTTON_SECONDARY)
+            ) {
+                val pos = grilla.pointToPosition(evento.x.toInt(), evento.y.toInt())
+                if (pos != AdapterView.INVALID_POSITION) alternar(pos)
+                true
+            } else {
+                false
+            }
         }
         raiz.addView(
             grilla,
@@ -308,11 +323,6 @@ class GaleriaActivity : Activity() {
             val f = archivos[position]
             val clave = f.absolutePath
             iv.tag = clave
-            // Clic derecho del mouse = elegir la imagen (para borrar o compartir).
-            iv.setOnContextClickListener {
-                alternar(position)
-                true
-            }
             val enCache = cache.get(clave)
             if (enCache != null) {
                 iv.setImageBitmap(enCache)
