@@ -135,8 +135,11 @@ object Ordenador {
         return moverTodas(ctx, candidatas.values.toList())
     }
 
-    /** Botón "Ordenar todo": recorre toda la memoria interna y junta todo lo que ya existe. */
-    fun ordenarTodo(ctx: Context): Int {
+    /**
+     * Botón "Ordenar todo": recorre toda la memoria interna y junta todo lo que ya existe.
+     * [alAvanzar] recibe (movidas hasta ahora, total encontradas) para mostrar el avance.
+     */
+    fun ordenarTodo(ctx: Context, alAvanzar: ((Int, Int) -> Unit)? = null): Int {
         if (!tienePermiso()) return 0
         val incluir = ajustes(ctx).getBoolean(CLAVE_MENSAJERIA, false)
         val base = raiz
@@ -155,11 +158,16 @@ object Ordenador {
             }
             .filter { it.isFile }
             .forEach { f -> if (corresponde(f.absolutePath, incluir)) encontradas.add(f) }
-        return moverTodas(ctx, encontradas)
+        alAvanzar?.invoke(0, encontradas.size)
+        return moverTodas(ctx, encontradas, alAvanzar)
     }
 
     @Synchronized
-    private fun moverTodas(ctx: Context, archivos: List<File>): Int {
+    private fun moverTodas(
+        ctx: Context,
+        archivos: List<File>,
+        alAvanzar: ((Int, Int) -> Unit)? = null,
+    ): Int {
         hayPendientes = false
         if (archivos.isEmpty()) return 0
         val carpeta = destino
@@ -182,7 +190,9 @@ object Ordenador {
             aEscanear.add(nuevo.absolutePath)
             movidas++
             ultima = nuevo.name
+            if (alAvanzar != null && movidas % 25 == 0) alAvanzar(movidas, archivos.size)
         }
+        alAvanzar?.invoke(movidas, archivos.size)
 
         if (aEscanear.isNotEmpty()) {
             // Avisa a la galería: borra la entrada vieja y registra la nueva.
