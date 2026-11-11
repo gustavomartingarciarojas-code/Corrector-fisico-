@@ -31,9 +31,30 @@
             </intent-filter>
         </activity>
 
+        <!-- Visor de imágenes: también se ofrece para abrir imágenes de otras apps
+             (reemplaza al visor del navegador). -->
         <activity
             android:name=".VisorActivity"
-            android:exported="false" />
+            android:label="Todo a Imagenes"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+        </activity>
+
+        <!-- Visor de PDF propio (reemplaza al navegador para los PDF). -->
+        <activity
+            android:name=".PdfActivity"
+            android:label="Visor PDF"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".AjustesActivity"
