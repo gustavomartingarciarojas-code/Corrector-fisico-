@@ -15,8 +15,11 @@ import android.content.Context
  *  - Las palabras que empiezan con mayúscula solo reciben tildes (no se
  *    "corrigen" marcas ni nombres propios como Alltak o Garcete).
  *  - Solo se corrige hacia palabras de uso frecuente.
+ *  - Las palabras del diccionario personal (PalabrasPropias) no se corrigen.
  */
 class Corrector(context: Context) {
+
+    private val ctx = context.applicationContext
 
     private val frecuencia = HashMap<String, Long>(60000)
     private val mejorConTilde = HashMap<String, String>(60000)
@@ -69,6 +72,10 @@ class Corrector(context: Context) {
         val w = palabra.lowercase()
         if (w.any { it !in letras }) return null
 
+        // Palabras del diccionario personal: no se tocan nunca.
+        val propias = PalabrasPropias.todas(ctx)
+        if (w in propias) return null
+
         val fPropia = frecuencia[w] ?: 0L
 
         // 1) Restitución de tildes: solo si la versión con tilde es mucho más usada.
@@ -88,7 +95,7 @@ class Corrector(context: Context) {
         var mejor: String? = null
         var mejorF = 200L // umbral: no corregir hacia palabras rarísimas
         for (cand in variantes(w)) {
-            val f = frecuencia[cand] ?: continue
+            val f = frecuencia[cand] ?: (if (cand in propias) 5000L else continue)
             if (f > mejorF) {
                 mejorF = f
                 mejor = cand
