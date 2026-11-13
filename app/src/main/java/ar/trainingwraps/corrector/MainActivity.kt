@@ -29,6 +29,13 @@ class MainActivity : Activity() {
             setPadding(48, 48, 48, 48)
         }
 
+        val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "?" }
+        columna.addView(TextView(this).apply {
+            textSize = 22f
+            text = "Versión $version"
+            setPadding(0, 0, 0, 24)
+        })
+
         columna.addView(TextView(this).apply {
             textSize = 16f
             text = """
