@@ -94,7 +94,11 @@ class Corrector(context: Context) {
         // 2) Error de tipeo de una letra: se elige el candidato más frecuente.
         var mejor: String? = null
         var mejorF = 200L // umbral: no corregir hacia palabras rarísimas
-        for (cand in variantes(w)) {
+        // Palabras cortas (4 letras o menos): solo se corrigen letras invertidas
+        // ("qeu" -> "que"). Cambiar una letra en una palabra corta da otra
+        // palabra real con demasiada facilidad ("caba" -> "casa").
+        val candidatos = if (w.length <= 4) invertidas(w) else variantes(w)
+        for (cand in candidatos) {
             val f = frecuencia[cand] ?: (if (cand in propias) 5000L else continue)
             if (f > mejorF) {
                 mejorF = f
@@ -108,6 +112,13 @@ class Corrector(context: Context) {
         original.length > 1 && original.all { it.isUpperCase() } -> corregida.uppercase()
         original.first().isUpperCase() -> corregida.replaceFirstChar { it.uppercaseChar() }
         else -> corregida
+    }
+
+    /** Solo variantes con dos letras seguidas invertidas. */
+    private fun invertidas(w: String): Sequence<String> = sequence {
+        for (i in 0 until w.length - 1) {
+            yield(w.substring(0, i) + w[i + 1] + w[i] + w.substring(i + 2))
+        }
     }
 
     /** Todas las variantes a distancia de edición 1. */
