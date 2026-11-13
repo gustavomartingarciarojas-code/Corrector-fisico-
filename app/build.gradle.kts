@@ -11,8 +11,18 @@ android {
         applicationId = "ar.trainingwraps.corrector"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 3
+        versionName = "1.2"
+    }
+
+    // Firma fija: así las próximas versiones se instalan encima sin desinstalar.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("firma.jks")
+            storePassword = "corrector"
+            keyAlias = "corrector"
+            keyPassword = "corrector"
+        }
     }
 
     compileOptions {
