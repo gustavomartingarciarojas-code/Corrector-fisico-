@@ -7,7 +7,8 @@ import android.content.Context
  *
  * Carga un diccionario de ~50.000 palabras con su frecuencia de uso
  * (assets/es_words.txt, una palabra y su frecuencia por línea) y corrige:
- *  1. Tildes faltantes: "medico" -> "médico", "aplicacion" -> "aplicación".
+ *  1. Tildes faltantes: "medico" -> "médico", "aca" -> "acá".
+ *     Siglas en mayúscula: "dni" -> "DNI".
  *  2. Errores de tipeo de una letra (falta, sobra, cambiada o invertida):
  *     "vinlo" -> "vinilo", "lmainado" -> "laminado".
  *
@@ -29,6 +30,15 @@ class Corrector(context: Context) {
         private set
 
     private val letras = "abcdefghijklmnopqrstuvwxyzáéíóúüñ"
+
+    /** Siglas que siempre van en mayúscula. */
+    private val siglas = setOf(
+        "dni", "cuit", "cuil", "afip", "caba", "amba", "pba", "gba",
+        "dvh", "iva", "rva", "pvc"
+    )
+
+    /** Palabras correctas sin tilde que no hay que cambiar. */
+    private val validasSinTilde = setOf("papa", "papas", "seria", "serias", "sabia", "sabias")
 
     init {
         // El diccionario se carga en segundo plano para no trabar el arranque.
@@ -76,12 +86,23 @@ class Corrector(context: Context) {
         val propias = PalabrasPropias.todas(ctx)
         if (w in propias) return null
 
+        // Siglas de uso diario: van en mayúscula ("dni" -> "DNI").
+        if (w in siglas) return if (palabra == w.uppercase()) null else w.uppercase()
+
         val fPropia = frecuencia[w] ?: 0L
 
-        // 1) Restitución de tildes: solo si la versión con tilde es mucho más usada.
+        // 1) Restitución de tildes.
+        //  - Si la versión con tilde es 20 veces más usada, se corrige (como siempre).
+        //  - Si es entre 8 y 20 veces más usada, también ("aca" -> "acá"), salvo:
+        //    palabras correctas sin tilde ("papa", "seria", "sabia") y el voseo
+        //    con pronombre ("fijate", "dejame", "quedate"), que en Argentina
+        //    van sin tilde.
         val conTilde = mejorConTilde[quitarTildes(w)]
-        if (conTilde != null && conTilde != w && (frecuencia[conTilde] ?: 0L) > fPropia * 20 + 50) {
-            return conservarMayusculas(palabra, conTilde)
+        if (conTilde != null && conTilde != w) {
+            val fTilde = frecuencia[conTilde] ?: 0L
+            val corregirTilde = fTilde > fPropia * 20 + 50 ||
+                (fTilde > fPropia * 8 + 50 && w !in validasSinTilde && !esVoseoConPronombre(w, conTilde))
+            if (corregirTilde) return conservarMayusculas(palabra, conTilde)
         }
 
         // Palabra conocida: se deja como está.
@@ -106,6 +127,33 @@ class Corrector(context: Context) {
             }
         }
         return mejor?.let { conservarMayusculas(palabra, it) }
+    }
+
+    private val pronombres = listOf("nos", "los", "las", "les", "me", "te", "se", "lo", "la", "le")
+    private val vocales = "aeiouáéíóúü"
+
+    /**
+     * Imperativo de voseo + pronombre ("fijate", "dejame", "creeme"): en
+     * Argentina se escribe sin tilde. Se reconoce porque termina en pronombre,
+     * lo que queda antes es un verbo que termina en a, e o i ("fija", "deja"),
+     * y la versión con tilde es esdrújula ("fíjate").
+     */
+    private fun esVoseoConPronombre(sinTilde: String, conTilde: String): Boolean {
+        val pron = pronombres.firstOrNull { sinTilde.endsWith(it) } ?: return false
+        val raiz = sinTilde.dropLast(pron.length)
+        if (raiz.length < 2 || raiz.last() !in "aei") return false
+        val raizConTilde = raiz.dropLast(1) + when (raiz.last()) { 'a' -> 'á'; 'e' -> 'é'; else -> 'í' }
+        if (raiz !in frecuencia && raizConTilde !in frecuencia) return false
+        val i = conTilde.indexOfFirst { it in "áéíóú" }
+        if (i < 0) return false
+        var grupos = 0
+        var enVocal = false
+        for (c in conTilde.substring(i + 1)) {
+            val v = c in vocales
+            if (v && !enVocal) grupos++
+            enVocal = v
+        }
+        return grupos >= 2
     }
 
     private fun conservarMayusculas(original: String, corregida: String): String = when {

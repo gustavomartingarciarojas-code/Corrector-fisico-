@@ -44,6 +44,8 @@ class CorrectorIME : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         corrector = Corrector(this)
+        // Aviso visible: confirma que el teclado que quedó elegido es este.
+        Toast.makeText(this, "Corrector físico activo", Toast.LENGTH_SHORT).show()
     }
 
     override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {

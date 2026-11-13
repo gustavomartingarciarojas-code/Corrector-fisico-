@@ -11,8 +11,8 @@ android {
         applicationId = "ar.trainingwraps.corrector"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.3"
     }
 
     // Firma fija: así las próximas versiones se instalan encima sin desinstalar.

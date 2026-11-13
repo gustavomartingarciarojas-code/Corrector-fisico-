@@ -20,6 +20,7 @@ class MainActivity : Activity() {
 
     private lateinit var lista: LinearLayout
     private lateinit var titulo: TextView
+    private lateinit var estado: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +36,13 @@ class MainActivity : Activity() {
             text = "Versión $version"
             setPadding(0, 0, 0, 24)
         })
+
+        // Estado del teclado: se ve de un vistazo si está escribiendo Corrector físico o Gboard.
+        estado = TextView(this).apply {
+            textSize = 20f
+            setPadding(32, 32, 32, 32)
+        }
+        columna.addView(estado)
 
         columna.addView(TextView(this).apply {
             textSize = 16f
@@ -120,6 +128,39 @@ class MainActivity : Activity() {
         super.onResume()
         // Puede haber palabras nuevas aprendidas con Retroceso desde el teclado.
         if (::lista.isInitialized) refrescarLista()
+        if (::estado.isInitialized) refrescarEstado()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Al cerrar la ventanita "Elegir teclado" la pantalla no se reanuda: se actualiza acá.
+        if (hasFocus && ::estado.isInitialized) refrescarEstado()
+    }
+
+    private fun refrescarEstado() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        val activado = try {
+            imm.enabledInputMethodList.any { it.packageName == packageName }
+        } catch (_: Exception) { false }
+        val actual = try {
+            Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD).orEmpty()
+        } catch (_: Exception) { "" }
+        val elegido = actual.startsWith("$packageName/")
+        when {
+            elegido -> {
+                estado.text = "✅ FUNCIONANDO: el teclado que escribe es Corrector físico."
+                estado.setBackgroundColor(0xFF1B5E20.toInt())
+            }
+            activado -> {
+                estado.text = "❌ NO ESTÁ ELEGIDO: ahora escribe otro teclado (Gboard) y no corrige.\nTocá \"2. Elegir teclado\"."
+                estado.setBackgroundColor(0xFFB71C1C.toInt())
+            }
+            else -> {
+                estado.text = "❌ NO ESTÁ ACTIVADO: no corrige.\nTocá \"1. Activar teclado\" y después \"2. Elegir teclado\"."
+                estado.setBackgroundColor(0xFFB71C1C.toInt())
+            }
+        }
+        estado.setTextColor(0xFFFFFFFF.toInt())
     }
 
     private fun refrescarLista() {
