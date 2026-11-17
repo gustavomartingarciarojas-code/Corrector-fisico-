@@ -97,3 +97,12 @@ contravidrios 5000
 refile 5000
 refilar 5000
 hidroelevador 5000
+hyperos 5000
+redmi 5000
+garware 5000
+espectra 5000
+moreyra 5000
+prodesing 5000
+kalciyan 5000
+coseglia 5000
+sosnovsky 5000

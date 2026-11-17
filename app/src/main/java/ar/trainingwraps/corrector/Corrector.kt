@@ -24,6 +24,43 @@ class Corrector(context: Context) {
 
     private val frecuencia = HashMap<String, Long>(60000)
     private val mejorConTilde = HashMap<String, String>(60000)
+    private val indiceFonetico = HashMap<String, String>(60000)
+
+    /**
+     * Clave "por sonido": dos palabras que suenan igual en castellano
+     * rioplatense dan la misma clave ("jente" y "gente", "recivi" y "recibí").
+     */
+    private fun fonetica(palabra: String): String {
+        var w = quitarTildes(palabra.lowercase())
+        w = w.replace("ll", "y").replace("qu", "k")
+        w = w.replace(Regex("c([ei])"), "s$1").replace(Regex("g([ei])"), "j$1")
+        w = w.replace("gue", "ge").replace("gui", "gi")
+        w = w.replace("c", "k").replace("z", "s").replace("v", "b").replace("h", "").replace("w", "u")
+        w = w.replace(Regex("(.)\\1"), "$1") // letras dobles: rr -> r, ss -> s
+        return w
+    }
+
+    private val letrasFoneticas = "abdefgijklmnopqrstuyñ"
+
+    /** Errores por sonido, con hasta una letra de más, de menos o cambiada. */
+    private fun corregirPorSonido(w: String, propias: Set<String>): String? {
+        val clave = fonetica(w)
+        val umbral = if (w.length >= 7) 15L else 200L
+        indiceFonetico[clave]?.let { c ->
+            if (c !in propias && (frecuencia[c] ?: 0L) >= umbral) return c
+        }
+        var mejor: String? = null
+        var mejorF = umbral
+        for (v in variantesDe(clave, letrasFoneticas)) {
+            val c = indiceFonetico[v] ?: continue
+            val f = frecuencia[c] ?: 0L
+            if (f > mejorF) {
+                mejorF = f
+                mejor = c
+            }
+        }
+        return mejor
+    }
 
     @Volatile
     var listo = false
@@ -59,6 +96,12 @@ class Corrector(context: Context) {
                             }
                         }
                     }
+                }
+                // v1.5: índice por sonido (j/g, b/v, s/z/c, k/qu, ll/y, h muda).
+                for ((palabra, f) in frecuencia) {
+                    val clave = fonetica(palabra)
+                    val actual = indiceFonetico[clave]
+                    if (actual == null || (frecuencia[actual] ?: 0L) < f) indiceFonetico[clave] = palabra
                 }
                 listo = true
             } catch (_: Exception) {
@@ -140,7 +183,29 @@ class Corrector(context: Context) {
                 mejor = palabraCand
             }
         }
-        return mejor?.let { conservarMayusculas(palabra, it) }
+        if (mejor != null) return conservarMayusculas(palabra, mejor)
+
+        // 3) v1.5: errores por sonido ("correijia" -> "corregía", "trankila" -> "tranquila").
+        // Solo en palabras en minúscula de 5 letras o más, para no tocar nombres propios.
+        if (palabra.first().isLowerCase() && w.length >= 5) {
+            corregirPorSonido(w, propias)?.let { return it }
+        }
+        return null
+    }
+
+    /** Variantes a distancia 1 de una clave, con el alfabeto indicado. */
+    private fun variantesDe(w: String, alfabeto: String): Sequence<String> = sequence {
+        yield(w)
+        for (i in w.indices) yield(w.removeRange(i, i + 1))
+        for (i in 0 until w.length - 1) {
+            yield(w.substring(0, i) + w[i + 1] + w[i] + w.substring(i + 2))
+        }
+        for (i in 0..w.length) {
+            for (c in alfabeto) {
+                if (i < w.length) yield(w.substring(0, i) + c + w.substring(i + 1))
+                yield(w.substring(0, i) + c + w.substring(i))
+            }
+        }
     }
 
     private val pronombres = listOf("nos", "los", "las", "les", "me", "te", "se", "lo", "la", "le")
