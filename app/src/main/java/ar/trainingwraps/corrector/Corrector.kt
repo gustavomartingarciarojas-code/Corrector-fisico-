@@ -77,7 +77,7 @@ class Corrector(context: Context) {
     }
 
     /** Devuelve la palabra corregida, o null si está bien o no hay candidato confiable. */
-    fun corregir(palabra: String): String? {
+    fun corregir(palabra: String, inicioOracion: Boolean = false): String? {
         if (!listo || palabra.length < 2) return null
         val w = palabra.lowercase()
         if (w.any { it !in letras }) return null
@@ -108,22 +108,36 @@ class Corrector(context: Context) {
         // Palabra conocida: se deja como está.
         if (fPropia > 0L) return null
 
-        // Nombres propios o marcas (mayúscula inicial) no se tocan.
-        if (palabra.first().isUpperCase()) return null
+        // Nombres propios o marcas (mayúscula inicial) no se tocan,
+        // salvo la primera palabra de una oración ("Ortogtafico" al empezar).
+        if (palabra.first().isUpperCase() && !inicioOracion) return null
         if (palabra.length < 3) return null
 
         // 2) Error de tipeo de una letra: se elige el candidato más frecuente.
+        // v1.4: el candidato puede llevar además la tilde que faltaba
+        // ("ortogtrafico" -> "ortográfico"), y en palabras largas el umbral
+        // de frecuencia es más bajo, porque son palabras técnicas o poco
+        // habituales y una sola letra de diferencia casi no da confusiones.
         var mejor: String? = null
-        var mejorF = 200L // umbral: no corregir hacia palabras rarísimas
+        var mejorF = if (w.length >= 7) 15L else 200L // umbral: no corregir hacia palabras rarísimas
         // Palabras cortas (4 letras o menos): solo se corrigen letras invertidas
         // ("qeu" -> "que"). Cambiar una letra en una palabra corta da otra
         // palabra real con demasiada facilidad ("caba" -> "casa").
         val candidatos = if (w.length <= 4) invertidas(w) else variantes(w)
         for (cand in candidatos) {
-            val f = frecuencia[cand] ?: (if (cand in propias) 5000L else continue)
+            var palabraCand = cand
+            var f = frecuencia[cand] ?: 0L
+            val conTildeCand = mejorConTilde[quitarTildes(cand)]
+            if (conTildeCand != null && (frecuencia[conTildeCand] ?: 0L) > f) {
+                palabraCand = conTildeCand
+                f = frecuencia[conTildeCand] ?: 0L
+            }
+            if (f == 0L) {
+                if (cand in propias) f = 5000L else continue
+            }
             if (f > mejorF) {
                 mejorF = f
-                mejor = cand
+                mejor = palabraCand
             }
         }
         return mejor?.let { conservarMayusculas(palabra, it) }

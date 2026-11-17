@@ -138,7 +138,11 @@ class CorrectorIME : InputMethodService() {
             if (previo.isLetterOrDigit() || previo in "@_#/-") return false
         }
 
-        val corregida = corrector.corregir(palabra) ?: run {
+        // Primera palabra de una oración: también se corrige aunque empiece con mayúscula.
+        val previoTexto = antes.substring(0, inicio).trimEnd(' ')
+        val inicioOracion = previoTexto.isEmpty() || previoTexto.last() in ".!?¿¡\n"
+
+        val corregida = corrector.corregir(palabra, inicioOracion) ?: run {
             limpiarUltima()
             return false
         }
