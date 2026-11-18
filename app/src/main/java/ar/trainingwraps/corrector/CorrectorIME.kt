@@ -42,8 +42,6 @@ class CorrectorIME : InputMethodService() {
     // En contraseñas, mails y direcciones web no se corrige nada.
     private var campoCorregible = true
 
-    // v1.8 — Enter para enviar en claude.ai desde Chrome (Shift+Enter: salto de línea).
-    private var avisoEnterMostrado = false
 
     override fun onCreate() {
         super.onCreate()
@@ -79,7 +77,7 @@ class CorrectorIME : InputMethodService() {
             return super.onKeyDown(keyCode, event)
         }
 
-        // En claude.ai (Chrome): Enter envía (como Ctrl+Enter); Shift+Enter hace un salto de línea.
+        // En Chrome, campos de varias líneas (claude.ai): Enter = Ctrl+Enter (enviar); Shift+Enter = salto de línea.
         if (esEnter(keyCode) && event.repeatCount == 0 && !event.isShiftPressed &&
             !event.isCtrlPressed && !event.isAltPressed && enClaudeWeb()
         ) {
@@ -116,27 +114,15 @@ class CorrectorIME : InputMethodService() {
         keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
 
     /**
-     * ¿El campo donde se escribe es de claude.ai en Chrome? Se sabe leyendo la barra
-     * de direcciones con el permiso de accesibilidad "Enter en claude.ai".
-     * Sin ese permiso, o en cualquier otra página (webmail, etc.), Enter queda normal.
+     * v1.9 — Sin permisos: en Chrome, en los campos de varias líneas (como el de
+     * claude.ai), Enter hace Ctrl + Enter. Los campos de una sola línea (buscadores,
+     * Para, Asunto, usuario) siguen con Enter normal. Shift + Enter: salto de línea.
      */
     private fun enClaudeWeb(): Boolean {
-        if (currentInputEditorInfo?.packageName != LectorChrome.CHROME) return false
-        val lector = LectorChrome.instancia
-        if (lector == null) {
-            if (!avisoEnterMostrado) {
-                avisoEnterMostrado = true
-                Toast.makeText(
-                    this,
-                    "Para que Enter envíe en claude.ai, abrí la app Corrector físico y tocá \"3. Activar Enter en claude.ai\"",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            return false
-        }
-        val dir = (lector.direccionChrome() ?: return false).trim().lowercase()
-            .removePrefix("https://").removePrefix("http://").removePrefix("www.")
-        return dir == "claude.ai" || dir.startsWith("claude.ai/")
+        val info = currentInputEditorInfo ?: return false
+        if (info.packageName != CHROME) return false
+        val multilinea = (info.inputType and InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0
+        return (info.inputType and InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT && multilinea
     }
 
     /** Lo mismo que apretar Ctrl + Enter, que en claude.ai envía el mensaje. */
@@ -249,5 +235,9 @@ class CorrectorIME : InputMethodService() {
     override fun onFinishInput() {
         limpiarUltima()
         super.onFinishInput()
+    }
+
+    companion object {
+        private const val CHROME = "com.android.chrome"
     }
 }

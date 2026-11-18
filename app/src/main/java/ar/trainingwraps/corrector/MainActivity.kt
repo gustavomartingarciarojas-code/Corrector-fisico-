@@ -24,7 +24,6 @@ class MainActivity : Activity() {
     private lateinit var lista: LinearLayout
     private lateinit var titulo: TextView
     private lateinit var estado: TextView
-    private lateinit var estadoEnter: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +73,7 @@ class MainActivity : Activity() {
 
                 Si una corrección no te gusta, apretá Retroceso una vez: vuelve la palabra original y queda guardada en "Mis palabras", así no la vuelve a corregir.
 
-                En claude.ai (Chrome): Enter envía el mensaje y Shift + Enter hace un salto de línea. Para eso tocá "3. Activar Enter en claude.ai" y encendé "Corrector físico: Enter en claude.ai". En el resto de las páginas (por ejemplo, el webmail), Enter sigue siendo Enter.
+                En Chrome (claude.ai): Enter envía el mensaje y Shift + Enter hace un salto de línea. Ojo: en cualquier cuadro de texto grande de Chrome (por ejemplo, el cuerpo del webmail) Enter también hace Ctrl + Enter; ahí usá Shift + Enter para bajar de línea.
 
                 Este teclado no dibuja nada en pantalla: está hecho para el teclado físico. Si sacás el teclado Bluetooth, volvé a Gboard repitiendo el paso 2.
             """.trimIndent()
@@ -93,19 +92,6 @@ class MainActivity : Activity() {
                 (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker()
             }
         })
-
-        columna.addView(Button(this).apply {
-            text = "3. Activar Enter en claude.ai"
-            setOnClickListener {
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            }
-        })
-
-        estadoEnter = TextView(this).apply {
-            textSize = 16f
-            setPadding(32, 24, 32, 24)
-        }
-        columna.addView(estadoEnter)
 
         // ---- Mis palabras (diccionario personal) ----
         titulo = TextView(this).apply {
@@ -211,21 +197,6 @@ class MainActivity : Activity() {
             }
         }
         estado.setTextColor(0xFFFFFFFF.toInt())
-
-        if (::estadoEnter.isInitialized) {
-            val servicios = try {
-                Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
-            } catch (_: Exception) { "" }
-            val enterActivo = servicios.contains("$packageName/") && servicios.contains("LectorChrome")
-            if (enterActivo) {
-                estadoEnter.text = "✅ Enter en claude.ai: ACTIVO"
-                estadoEnter.setBackgroundColor(0xFF1B5E20.toInt())
-            } else {
-                estadoEnter.text = "❌ Enter en claude.ai: NO ACTIVO. Tocá \"3. Activar Enter en claude.ai\"."
-                estadoEnter.setBackgroundColor(0xFF5D4037.toInt())
-            }
-            estadoEnter.setTextColor(0xFFFFFFFF.toInt())
-        }
     }
 
     private fun refrescarLista() {
