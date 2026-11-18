@@ -73,6 +73,8 @@ class MainActivity : Activity() {
 
                 Si una corrección no te gusta, apretá Retroceso una vez: vuelve la palabra original y queda guardada en "Mis palabras", así no la vuelve a corregir.
 
+                En la app de Claude: Enter envía el mensaje y Shift + Enter hace un salto de línea.
+
                 Este teclado no dibuja nada en pantalla: está hecho para el teclado físico. Si sacás el teclado Bluetooth, volvé a Gboard repitiendo el paso 2.
             """.trimIndent()
         })
