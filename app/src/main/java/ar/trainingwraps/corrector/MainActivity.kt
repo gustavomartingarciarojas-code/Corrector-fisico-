@@ -2,10 +2,13 @@ package ar.trainingwraps.corrector
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
+import android.view.WindowInsets
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -25,15 +28,29 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Modo oscuro siempre: fondo negro, barras del sistema negras e íconos claros,
+        // así los tres botones de abajo se ven bien.
+        window.statusBarColor = Color.BLACK
+        window.navigationBarColor = Color.BLACK
+        window.decorView.setBackgroundColor(FONDO)
+
         val columna = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(48, 48, 48, 48)
         }
 
+        columna.addView(TextView(this).apply {
+            textSize = 26f
+            text = "Corrector físico"
+            setTextColor(TEXTO)
+            setPadding(0, 0, 0, 8)
+        })
+
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (_: Exception) { "?" }
         columna.addView(TextView(this).apply {
-            textSize = 22f
+            textSize = 18f
             text = "Versión $version"
+            setTextColor(TEXTO_SUAVE)
             setPadding(0, 0, 0, 24)
         })
 
@@ -120,7 +137,24 @@ class MainActivity : Activity() {
         lista = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         columna.addView(lista)
 
-        setContentView(ScrollView(this).apply { addView(columna) })
+        val raiz = ScrollView(this).apply {
+            setBackgroundColor(FONDO)
+            clipToPadding = false
+            addView(columna)
+            // Que nada quede tapado por la barra de arriba ni por los botones de abajo.
+            setOnApplyWindowInsetsListener { v, insets ->
+                if (Build.VERSION.SDK_INT >= 30) {
+                    val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                    v.setPadding(b.left, b.top, b.right, b.bottom)
+                } else {
+                    @Suppress("DEPRECATION")
+                    v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                        insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                }
+                insets
+            }
+        }
+        setContentView(raiz)
         refrescarLista()
     }
 
@@ -188,4 +222,10 @@ class MainActivity : Activity() {
     }
 
     private fun aviso(t: String) = Toast.makeText(this, t, Toast.LENGTH_SHORT).show()
+
+    companion object {
+        private const val FONDO = 0xFF121212.toInt()
+        private const val TEXTO = 0xFFEDEDED.toInt()
+        private const val TEXTO_SUAVE = 0xFFB0B0B0.toInt()
+    }
 }
