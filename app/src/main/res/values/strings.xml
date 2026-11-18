@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">Corrector físico</string>
     <string name="subtype_es">Español (Argentina)</string>
+    <string name="nombre_lector">Corrector físico: Enter en claude.ai</string>
+    <string name="descripcion_lector">Hace que Enter envíe el mensaje en claude.ai desde Chrome (Shift + Enter: salto de línea). Lee solo la barra de direcciones de Chrome en el momento en que apretás Enter, para saber si estás en claude.ai. No guarda ni manda nada.</string>
 </resources>

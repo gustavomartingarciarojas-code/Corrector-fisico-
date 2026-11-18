@@ -1,12 +1,10 @@
 package ar.trainingwraps.corrector
 
 import android.inputmethodservice.InputMethodService
-import android.os.Handler
-import android.os.Looper
+import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputConnection
 import android.widget.Toast
 
 /**
@@ -44,8 +42,7 @@ class CorrectorIME : InputMethodService() {
     // En contraseñas, mails y direcciones web no se corrige nada.
     private var campoCorregible = true
 
-    // v1.7 — Enter para enviar en la app de Claude (Shift+Enter: salto de línea).
-    private val principal = Handler(Looper.getMainLooper())
+    // v1.8 — Enter para enviar en claude.ai desde Chrome (Shift+Enter: salto de línea).
     private var avisoEnterMostrado = false
 
     override fun onCreate() {
@@ -82,11 +79,13 @@ class CorrectorIME : InputMethodService() {
             return super.onKeyDown(keyCode, event)
         }
 
-        // En la app de Claude: Enter envía el mensaje; Shift+Enter hace un salto de línea.
-        if (esEnter(keyCode) && event.repeatCount == 0 && !event.isShiftPressed && esAppClaude()) {
+        // En claude.ai (Chrome): Enter envía (como Ctrl+Enter); Shift+Enter hace un salto de línea.
+        if (esEnter(keyCode) && event.repeatCount == 0 && !event.isShiftPressed &&
+            !event.isCtrlPressed && !event.isAltPressed && enClaudeWeb()
+        ) {
             corregirYEscribir(keyCode, event, escribirEnter = false)
             limpiarUltima()
-            enviarOSaltarLinea()
+            enviarCtrlEnter()
             teclaConsumida = keyCode
             return true
         }
@@ -116,35 +115,37 @@ class CorrectorIME : InputMethodService() {
     private fun esEnter(keyCode: Int) =
         keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
 
-    private fun esAppClaude() = currentInputEditorInfo?.packageName == APP_CLAUDE
-
-    private fun textoDelCampo(ic: InputConnection): String =
-        (ic.getTextBeforeCursor(5000, 0)?.toString().orEmpty()) +
-            (ic.getTextAfterCursor(5000, 0)?.toString().orEmpty())
-
     /**
-     * Le pide a la app que envíe (la misma orden que el botón "enviar" del teclado
-     * de pantalla). Si la app no la acepta y el texto sigue ahí, hace lo de siempre:
-     * un salto de línea. Así, en el peor caso, Enter queda igual que antes.
+     * ¿El campo donde se escribe es de claude.ai en Chrome? Se sabe leyendo la barra
+     * de direcciones con el permiso de accesibilidad "Enter en claude.ai".
+     * Sin ese permiso, o en cualquier otra página (webmail, etc.), Enter queda normal.
      */
-    private fun enviarOSaltarLinea() {
-        val ic = currentInputConnection ?: return
-        val antes = textoDelCampo(ic)
-        if (antes.isBlank()) return
-        val declarada = (currentInputEditorInfo?.imeOptions ?: 0) and EditorInfo.IME_MASK_ACTION
-        val accion = if (declarada == EditorInfo.IME_ACTION_NONE || declarada == EditorInfo.IME_ACTION_UNSPECIFIED)
-            EditorInfo.IME_ACTION_SEND else declarada
-        ic.performEditorAction(accion)
-        principal.postDelayed({
-            val ic2 = currentInputConnection ?: return@postDelayed
-            if (textoDelCampo(ic2) == antes) {
-                ic2.commitText("\n", 1)
-                if (!avisoEnterMostrado) {
-                    avisoEnterMostrado = true
-                    Toast.makeText(this, "La app no aceptó Enter para enviar: hizo un salto de línea", Toast.LENGTH_LONG).show()
-                }
+    private fun enClaudeWeb(): Boolean {
+        if (currentInputEditorInfo?.packageName != LectorChrome.CHROME) return false
+        val lector = LectorChrome.instancia
+        if (lector == null) {
+            if (!avisoEnterMostrado) {
+                avisoEnterMostrado = true
+                Toast.makeText(
+                    this,
+                    "Para que Enter envíe en claude.ai, abrí la app Corrector físico y tocá \"3. Activar Enter en claude.ai\"",
+                    Toast.LENGTH_LONG
+                ).show()
             }
-        }, 600)
+            return false
+        }
+        val dir = (lector.direccionChrome() ?: return false).trim().lowercase()
+            .removePrefix("https://").removePrefix("http://").removePrefix("www.")
+        return dir == "claude.ai" || dir.startsWith("claude.ai/")
+    }
+
+    /** Lo mismo que apretar Ctrl + Enter, que en claude.ai envía el mensaje. */
+    private fun enviarCtrlEnter() {
+        val ic = currentInputConnection ?: return
+        val meta = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON
+        val t = SystemClock.uptimeMillis()
+        ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0, meta))
+        ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER, 0, meta))
     }
 
     private fun esDisparador(keyCode: Int, event: KeyEvent): Boolean {
@@ -248,9 +249,5 @@ class CorrectorIME : InputMethodService() {
     override fun onFinishInput() {
         limpiarUltima()
         super.onFinishInput()
-    }
-
-    companion object {
-        private const val APP_CLAUDE = "com.anthropic.claude"
     }
 }
